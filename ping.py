@@ -22,6 +22,9 @@ class Ping:
 			self.timelim: int = TIMELIM
 
 	def ping(self) -> None:
+		"""
+			ping を実行するメインプログラム
+		"""
 		try:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname("icmp"))
 			sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -39,6 +42,13 @@ class Ping:
 			# {} bytes from {}: icmp_seq={} ttl={} time={} ms
 
 	def _send(self, sock) -> float:
+		"""
+			ICMP エコー要求を飛ばす関数
+			Args:
+				sock socket
+			Returns:
+				float 送信時刻
+		"""
 		# Generate Temp Packet
 		checksum: int = 0
 		header: bytes = struct.pack("!BBHHH", ICMP_ECHO, 0, checksum, self.myId, self.seqNum)
@@ -62,6 +72,11 @@ class Ping:
 		return send_time
 
 	def _recv(self, sock) -> tuple:
+		"""
+			ICMP リプライを受信する
+			Return:
+				tuple [受信時刻, 受信データ]
+		"""
 		timeleft: float = self.timelim / 1000
 		start = time.time()
 
@@ -87,6 +102,11 @@ class Ping:
 				return recv_time, (packet_size, src[0], ip_header, icmp_header)
 
 	def _random(self) -> str:
+		"""
+			ランダムな文字列を生成する関数
+			Return:
+				str ランダム文字列
+		"""
 		return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(self.length))
 
 	def _checksum(self, data) -> int:
@@ -105,6 +125,9 @@ class Ping:
 		return ans
 
 	def _icmp_header(self, raw) -> dict:
+		"""
+			ICMP ヘッダの Raw データを変換
+		"""
 		icmp_header = struct.unpack('!bbHHh', raw)
 		data = {
 			'type': icmp_header[0],
@@ -116,6 +139,9 @@ class Ping:
 		return data
 
 	def _ip_header(self, raw) -> dict:
+		"""
+			IP ヘッダの Raw データを変換
+		"""
 		ip_header = struct.unpack('!BBHHHBBHII', raw)
 		data = {
 			'version': ip_header[0],
@@ -130,7 +156,3 @@ class Ping:
 			'dest_ip': ip_header[9]
 		}
 		return ip_header
-
-	def __str__(self) -> str:
-		strings = "PING {}: {} bytes of data".format(self.dest, self.length)
-		return strings
