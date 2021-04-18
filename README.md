@@ -5,5 +5,4 @@
 main 関数内で宛先しています
 
 ## Usage
-Simply execute the python file  
-`sudo python3 ping.py`
+Simply execute the python file with `sudo python3 main.py`

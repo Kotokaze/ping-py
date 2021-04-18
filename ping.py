@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-import os
 import socket
 import time
 import random
@@ -7,7 +5,6 @@ import struct
 import string
 import select
 from array import array
-from _thread import get_ident
 
 ICMP_ECHOREPLY = 0  # Echo reply
 ICMP_ECHO = 8  # Echo request
@@ -137,20 +134,3 @@ class Ping:
 	def __str__(self) -> str:
 		strings = "PING {}: {} bytes of data".format(self.dest, self.length)
 		return strings
-
-
-def main() -> None:
-	ping = Ping()
-	ping.dest = '127.0.0.1'
-	ping.myId = (os.getpid() ^ get_ident()) & 0xFFFF
-	# ping.ping()
-
-	try:
-		while True:
-			ping.ping()
-			ping.seqNum += 1
-	except KeyboardInterrupt:
-		exit(0)
-
-if __name__ == '__main__':
-	main()
