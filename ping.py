@@ -10,8 +10,7 @@ ICMP_ECHOREPLY = 0  # Echo reply
 ICMP_ECHO = 8  # Echo request
 DATA_LENGTH = 32  # The length of data
 BUF_SIZE = 1024
-TIMELIM = 10000  # milliseconds
-
+TIMELIM = 3000  # milliseconds
 
 class Ping:
 	def __init__(self) -> None:
@@ -30,13 +29,12 @@ class Ping:
 		try:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname("icmp"))
 			sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+			send_time = self._send(sock)
+			recv_time, recv_data = self._recv(sock)
 		except OSError as e:
 			print(e)
-			exit(-1)
-
-		send_time = self._send(sock)
-		recv_time, recv_data = self._recv(sock)
-		sock.close()
+		finally:
+			sock.close()
 
 		if recv_data:
 			elapse = (recv_time - send_time) * 1000

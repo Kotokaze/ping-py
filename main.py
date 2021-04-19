@@ -1,11 +1,12 @@
 #! /usr/bin/env python3
 import os
 from ping import Ping
+from socket import gethostbyname
 from _thread import get_ident
 
 def main() -> None:
 	ping = Ping()
-	ping.dest = '127.0.0.1'  # 宛先
+	ping.dest = gethostbyname((str(input("Enter the target: "))))
 	ping.myId = (os.getpid() ^ get_ident()) & 0xFFFF
 
 	try:
