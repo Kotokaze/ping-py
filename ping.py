@@ -9,7 +9,8 @@ from array import array
 ICMP_ECHOREPLY = 0  # Echo reply
 ICMP_ECHO = 8  # Echo request
 DATA_LENGTH = 32  # The length of data
-TIMELIM = 1000  # milliseconds
+BUF_SIZE = 1024
+TIMELIM = 10000  # milliseconds
 
 
 class Ping:
@@ -19,6 +20,7 @@ class Ping:
 			self.packet: bytes = None
 			self.length: int = DATA_LENGTH
 			self.seqNum: int = 0
+			self.checksum: int = 0
 			self.timelim: int = TIMELIM
 
 	def ping(self) -> None:
@@ -38,8 +40,7 @@ class Ping:
 
 		if recv_data:
 			elapse = (recv_time - send_time) * 1000
-			print("{} bytes from {}: time={} ms".format(recv_data[0], recv_data[1], elapse))
-			# {} bytes from {}: icmp_seq={} ttl={} time={} ms
+			print("{} bytes from {}: icmp_seq={} ttl={} time={:.3f} ms".format(int(recv_data[0]/8), recv_data[1], recv_data[2], recv_data[3], elapse))
 
 	def _send(self, sock) -> float:
 		"""
@@ -50,15 +51,15 @@ class Ping:
 				float 送信時刻
 		"""
 		# Generate Temp Packet
-		checksum: int = 0
+		checksum = 0
 		header: bytes = struct.pack("!BBHHH", ICMP_ECHO, 0, checksum, self.myId, self.seqNum)
 		data: bytes = self._random().encode('utf-8')
 		packet: bytes = header + data
 
-		checksum = self._checksum(packet)
+		self.checksum = self._checksum(packet)
 
 		# Generate Packet
-		header = struct.pack("!BBHHH", ICMP_ECHO, 0, checksum, self.myId, self.seqNum)
+		header = struct.pack("!BBHHH", ICMP_ECHO, 0, self.checksum, self.myId, self.seqNum)
 		self.packet = header + data
 
 		try:
@@ -90,16 +91,16 @@ class Ping:
 				return None, (None)
 
 			recv_time = time.time()
-			packet, src = sock.recvfrom(self.length)
+			packet, src = sock.recvfrom(BUF_SIZE)
 
 			raw = packet[20:28]
 			icmp_header = self._icmp_header(raw)
 
-			if icmp_header["packetId"] == self.myId:
+			if (icmp_header["packetId"] == self.myId) and (hex(self._checksum(raw[20:22] + raw[25:28]))):
 				raw = packet[:20]
 				ip_header = self._ip_header(raw)
 				packet_size = len(packet) - 28
-				return recv_time, (packet_size, src[0], ip_header, icmp_header)
+				return recv_time, (packet_size, src[0], icmp_header['seq'], ip_header['ttl'])
 
 	def _random(self) -> str:
 		"""
@@ -119,7 +120,7 @@ class Ping:
 
 		val &= 0xffffffff
 		val = (val >> 16) + (val & 0xffff)
-		val += (val >> 16)
+		val = (val >> 16) + (val & 0xffff)
 		ans = ~val & 0xffff
 		ans = socket.htons(ans)
 		return ans
@@ -155,4 +156,4 @@ class Ping:
 			'src_ip': ip_header[8],
 			'dest_ip': ip_header[9]
 		}
-		return ip_header
+		return data
