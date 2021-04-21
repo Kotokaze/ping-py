@@ -8,25 +8,27 @@ from array import array
 
 ICMP_ECHOREPLY = 0  # Echo reply
 ICMP_ECHO = 8  # Echo request
-DATA_LENGTH = 32  # The length of data
+DATA_LENGTH = 512  # The length of data
 BUF_SIZE = 1024
 TIMELIM = 3000  # milliseconds
 
 class Ping:
-	def __init__(self) -> None:
-			self.dest = None
-			self.myId = None
+	def __init__(self, dest, myId) -> None:
+			self.dest = dest
+			self.myId = myId
 			self.packet: bytes = None
 			self.length: int = DATA_LENGTH
 			self.seqNum: int = 0
 			self.checksum: int = 0
 			self.timelim: int = TIMELIM
+			self.count: int = 0
 
 	def ping(self) -> None:
 		"""
 			ping を実行するメインプログラム
 		"""
 		try:
+			self.dest = socket.gethostbyname(self.dest)
 			sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.getprotobyname("icmp"))
 			sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 			send_time = self._send(sock)
@@ -98,6 +100,7 @@ class Ping:
 				raw = packet[:20]
 				ip_header = self._ip_header(raw)
 				packet_size = len(packet) - 28
+				self.count += 1
 				return recv_time, (packet_size, src[0], icmp_header['seq'], ip_header['ttl'])
 
 	def _random(self) -> str:
@@ -155,3 +158,10 @@ class Ping:
 			'dest_ip': ip_header[9]
 		}
 		return data
+
+	def _statistics(self) -> None:
+		print(f"\n\n--- {self.dest} ping statistics ---")
+		print(f"{self.seqNum} packets transmitted, {self.count} packets received, {(100 * (self.seqNum - self.count))/self.seqNum}% packet loss")
+
+	def __str__(self) -> str:
+		return f"PING {self.dest}: {int(self.length / 8)} data bytes"
